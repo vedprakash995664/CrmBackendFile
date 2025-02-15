@@ -46,7 +46,7 @@ export const addManyLead = async (req, res) => {
     
     try {
         const addedBy = req.params.id;
-        const { leadsArray, userType } = req.body; // Leads is an array
+        const { leadsArray, userType} = req.body; // Leads is an array
         // console.log(leadsArray, "id: ", addedBy, "user", userType);
         // Validate input
         if (!leadsArray || !Array.isArray(leadsArray) || leadsArray.length === 0) {
@@ -55,16 +55,16 @@ export const addManyLead = async (req, res) => {
                 success: false,
             });
         }
-
+        
         const leads = [];
+       
 
-        // Get all existing leads in one query (optimization)
+        
         const existingPhones = await Lead.find({ phone: { $in: leadsArray.map(lead => lead.phone) } }).select("phone");
-
-        // Convert existingPhones to a Set for faster lookup
+        
         const existingPhonesSet = new Set(existingPhones.map(lead => lead.phone));
 
-        // Iterate through leadsArray and add only new leads
+        
         for (const lead of leadsArray) {
             if (!lead.phone) {
                 return res.status(400).json({ // Changed 404 to 400 (bad request)
