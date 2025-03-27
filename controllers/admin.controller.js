@@ -200,3 +200,45 @@ export const unBlockAdmin = async (req, res)=>{
         })
     }
 }
+
+
+export const updateAdmin = async (req, res) => {
+    try {
+        const adminId = req.params.id;
+        const updateFields = req.body; // Fields to update
+
+        if (!adminId) {
+            return res.status(400).json({
+                message: "Admin ID is required!",
+                success: false
+            });
+        }
+
+        // Check if the admin exists
+        const existingAdmin = await Admin.findById(adminId);
+        if (!existingAdmin) {
+            return res.status(404).json({
+                message: "Admin not found!",
+                success: false
+            });
+        }
+
+        // Update the admin with the provided fields
+        const updatedAdmin = await Admin.findByIdAndUpdate(
+            adminId,
+            { $set: updateFields },
+            { new: true } // Return updated admin
+        );
+
+        return res.status(200).json({
+            message: "Admin updated successfully!",
+            updatedAdmin,
+            success: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || "Internal Server Error! while updating admin",
+            success: false
+        });
+    }
+};
