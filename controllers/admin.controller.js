@@ -21,7 +21,7 @@ export const registerAdmin = async (req, res) => {
             zipCode} = req.body;
         if (!name || !mobile || !email || !password) {
             return res.status(400).json({
-                message: "Somthing is missing, All feilds are required !",
+                message: "Something is missing, All feilds are required !",
                 success: false
             })
         }
@@ -58,6 +58,7 @@ export const registerAdmin = async (req, res) => {
             companyType,
             street,
             city,
+            state,
             country,
             zipCode,
             addedBy
