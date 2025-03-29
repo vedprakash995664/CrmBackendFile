@@ -205,7 +205,7 @@ export const unBlockAdmin = async (req, res)=>{
 export const updateAdmin = async (req, res) => {
     try {
         const adminId = req.params.id;
-        const updateFields = req.body; // Fields to update
+        const updateFields = req.body;
 
         if (!adminId) {
             return res.status(400).json({
