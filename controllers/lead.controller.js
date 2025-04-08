@@ -4,44 +4,46 @@ import Lead from "../models/lead.model.js";
 
 export const addLead = async (req, res) => {
     try {
-        const addedBy = req.params.id;
-        const { name, phone, priority, sources, userType,leadAssignedTo } = req.body;
-        console.log(userType);
-        if (!phone) {
-            res.status(400).json({  
-                message: "phone is an required feild!",
-                success: false
-            })
-        }
-        let isExistAddedBy = await Admin.findOne({ _id: addedBy }) || await Employee.findOne({ _id: addedBy });
-        if (!isExistAddedBy) {
-            return res.status(400).json({
-                message: "Invalid addedBy Id !",
-                success: false,
-            })
-        }
-
-        const newLead = await Lead.create({
-            name: name,
-            phone: phone,
-            priority: priority,
-            sources: sources,
-            addedBy,
-            leadAssignedTo:leadAssignedTo,
-            addedByType:userType === "Employee" ? "Employee" :"Admin"
-        })
-        return res.status(201).json({
-            message: "Lead Added Successfully!",
-            lead: newLead,
-            success: true
-        })
+      const addedBy = req.params.id;
+      const { name, phone, priority, sources, userType, leadAssignedTo, tags } = req.body;
+      if (!phone) {
+        return res.status(400).json({
+          message: "phone is a required field!",
+          success: false
+        });
+      }
+      
+      let isExistAddedBy = await Admin.findOne({ _id: addedBy }) || await Employee.findOne({ _id: addedBy });
+      if (!isExistAddedBy) {
+        return res.status(400).json({
+          message: "Invalid addedBy Id !",
+          success: false,
+        });
+      }
+      
+      const newLead = await Lead.create({
+        name: name,
+        phone: phone,
+        priority: priority,
+        sources: sources,
+        tags: tags || [], // Add tags field with default empty array
+        addedBy,
+        leadAssignedTo: leadAssignedTo,
+        addedByType: userType === "Employee" ? "Employee" : "Admin"
+      });
+      
+      return res.status(201).json({
+        message: "Lead Added Successfully!",
+        lead: newLead,
+        success: true
+      });
     } catch (error) {
-        return res.status(500).json({
-            message: error.message || "Internal Server Error! at the time of adding lead.",
-            success: false
-        })
+      return res.status(500).json({
+        message: error.message || "Internal Server Error! at the time of adding lead.",
+        success: false
+      });
     }
-}
+  }
 export const addManyLead = async (req, res) => {
     
     try {
