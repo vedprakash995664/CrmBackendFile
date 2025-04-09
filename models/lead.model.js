@@ -25,39 +25,37 @@ const leadSchema = mongoose.Schema({
   sources: {
     type: String
   },
-
   country: {
-      type: String,
-      trim: true,
-    },
-    state: {
-      type: String,
-      trim: true,
-    },
-    city: {
-      type: String,
-      trim: true,
-    },
-    zipCode: {
-      type: String,
-      trim: true,
-    },
+    type: String,
+    trim: true,
+  },
+  state: {
+    type: String,
+    trim: true,
+  },
+  city: {
+    type: String,
+    trim: true,
+  },
+  zipCode: {
+    type: String,
+    trim: true,
+  },
   priority: {
     type: String,
   },
-
   // Lead Status
   leadStatus: {
     type: String,
-
   },
-  leadAssignedTo: {
+  // Modified this field to be an array of ObjectIds
+  leadAssignedTo: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Employee",
+  }],
+  tags: {
+    type: [String]
   },
-  tags:{
-    type:[String]
-  },
   deleted: {
     type: Boolean,
     required: true,
@@ -83,8 +81,6 @@ const leadSchema = mongoose.Schema({
     required: true,
     enum: ["Admin", "Employee"],
   },
-
-
 }, { timestamps: true })
 
 const Lead = new mongoose.model("Lead", leadSchema)

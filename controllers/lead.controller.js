@@ -26,7 +26,7 @@ export const addLead = async (req, res) => {
         phone: phone,
         priority: priority,
         sources: sources,
-        tags: tags || [], // Add tags field with default empty array
+        tags: tags || [], 
         addedBy,
         leadAssignedTo: leadAssignedTo,
         addedByType: userType === "Employee" ? "Employee" : "Admin"
@@ -213,35 +213,53 @@ export const restoreLead = async (req, res) => {
 
 export const assignLead = async (req, res) => {
     try {
-        const {leadsArray, empId} = req.body;
-        if(!leadsArray || !Array.isArray(leadsArray) || leadsArray.length === 0 || !empId){
-            return res.status(404).json({
-                message:"Leads Array and Employee Id is required!",
-                success:false
-            })
-        }
-        // Check if the employee exists
+        const { leadId, employeeIds } = req.body;
         
-    const employee = await Employee.find({_id:empId});
-    if (!employee) {
-      return res.status(404).json({ 
-        message: 'Employee not found',
-        success:false
-       });
-    }
-    const updatedLeads = await Lead.updateMany({_id:{$in:leadsArray}},{$set:{leadAssignedTo:empId}})
-    return res.status(200).json({ 
-        message: 'Leads assigned successfully', 
-        updatedLeads,
-        success:true
-     });
+        if (!leadId || !employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0) {
+            return res.status(400).json({
+                message: "Lead ID and Employee IDs array are required!",
+                success: false
+            });
+        }
+        
+        // Check if the lead exists
+        const lead = await Lead.findById(leadId);
+        if (!lead) {
+            return res.status(404).json({
+                message: "Lead not found",
+                success: false
+            });
+        }
+        
+        // Check if all employees exist
+        const employees = await Employee.find({ _id: { $in: employeeIds } });
+        if (employees.length !== employeeIds.length) {
+            return res.status(404).json({
+                message: "One or more employees not found",
+                success: false
+            });
+        }
+        
+        // Update the lead with multiple employees
+        const updatedLead = await Lead.findByIdAndUpdate(
+            leadId,
+            { $set: { leadAssignedTo: employeeIds } },
+            { new: true }
+        );
+        
+        return res.status(200).json({
+            message: "Employees assigned to lead successfully",
+            updatedLead,
+            success: true
+        });
+        
     } catch (error) {
         return res.status(500).json({
-            message: error.message || "Internal Server Error!, at the time of Assigning lead to and Emplployee",
+            message: error.message || "Internal Server Error! Error assigning employees to lead",
             success: false
         });
     }
-}
+};
 
 
 export const updateLead = async(req,res)=>{
