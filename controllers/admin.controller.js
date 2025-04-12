@@ -97,6 +97,12 @@ export const adminLogin =  async (req, res)=>{
             success:false,
         })
     }
+    if(existUser.blocked===true){
+        return res.status(400).json({
+            message:"You are blocked by your Admin ! Contact to DigiCoder Technologies (P) Ltd",
+            success:false
+        })
+    }
     return res.status(200).json({
         message:"logedin successful",
         existUser:existUser,

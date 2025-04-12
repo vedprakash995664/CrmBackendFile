@@ -189,6 +189,12 @@ export const loginEmployee = async (req,res)=>{
                 success:false
             })
         }
+        if(isExistEmployee.blocked===true){
+            return res.status(400).json({
+                message:"You are blocked by your Admin ! Contact to Your Admin",
+                success:false
+            })
+        }
         return res.status(200).json({
             message:"You are Logedin Successfully!.",
             employee:isExistEmployee,
