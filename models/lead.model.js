@@ -9,7 +9,7 @@ const leadSchema = mongoose.Schema({
   phone: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   email: {
     type: String,
@@ -23,7 +23,8 @@ const leadSchema = mongoose.Schema({
   },
   // lead address
   sources: {
-    type: String
+     type:mongoose.Schema.Types.ObjectId,
+     ref:"LeadSources"
   },
   country: {
     type: String,
@@ -42,20 +43,23 @@ const leadSchema = mongoose.Schema({
     trim: true,
   },
   priority: {
-    type: String,
+     type:mongoose.Schema.Types.ObjectId,
+     ref:"Priority"
   },
   // Lead Status
   leadStatus: {
-    type: String,
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"LeadStatus"
   },
   // Modified this field to be an array of ObjectIds
   leadAssignedTo: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Employee",
   }],
-  tags: {
-    type: [String]
-  },
+  tags: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref:"Tag"
+  }],
   deleted: {
     type: Boolean,
     required: true,

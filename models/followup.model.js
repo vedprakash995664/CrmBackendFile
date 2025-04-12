@@ -4,23 +4,21 @@ const followupSchema = new mongoose.Schema(
   {
     leadId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Lead", // Reference to the Lead schema
+      ref: "Lead", 
       required: true,
     },
   
     followupStatus: {
-      type: String,
-      trim: true,
-      required:true
+      type: mongoose.Schema.Types.ObjectId,
+      ref:"LeadStatus"
     },
     priority:{
-      type: String,
-      trim: true,
-      required:true
+      type: mongoose.Schema.Types.ObjectId,
+      ref:"Priority"
     },
     followedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Employee", // Reference to the user (Salesperson)
+      ref: "Employee",
       required:true
     },
     followupMessage: {

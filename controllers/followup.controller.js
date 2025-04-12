@@ -90,7 +90,11 @@ export const getFollowupById = async(req,res)=>{
 export const getFollowupByAddedBy = async(req,res)=>{
     try {
         const followedBy=req.params.id;
-        const followups = await Followup.find({followedBy:followedBy}).populate('followedBy').populate('leadId');
+        const followups = await Followup.find({followedBy:followedBy})
+        .populate('followedBy')
+        .populate('leadId')   
+        .populate('priority')
+        .populate('followupStatus');
         return res.status(200).json({
             message:"Followup Fond!.",
             followups,
@@ -107,9 +111,11 @@ export const getFollowupByAddedBy = async(req,res)=>{
 export const getAllFollowup = async(req,res)=>{
     try {
         const leadId=req.params.id
-        console.log(leadId);
-        
-        const followups = await Followup.find({leadId:leadId}).populate('followedBy').sort({ createdAt: -1 });;
+        const followups = await Followup.find({leadId:leadId})
+        .populate('followedBy')
+        .populate('priority')
+        .populate('followupStatus')
+        .sort({ createdAt: -1 });;
         console.log(followups);
         
         return res.status(200).json({   
@@ -129,14 +135,17 @@ export const getAllFollowup = async(req,res)=>{
 export const getNextFollowupByAddedBy = async (req, res) => {
     try {
         const followedBy = req.params.id;
-        
+
         // Get all followups for this user
-        const followups = await Followup.find({ followedBy: followedBy });
-        
+        const followups = await Followup.find({ followedBy: followedBy })
+            .populate('followedBy')
+            .populate('priority')
+            .populate('followupStatus');
+
         // Extract unique lead IDs
         const leadIds = followups.map(followup => followup.leadId.toString());
         const uniqueLeadIds = [...new Set(leadIds)];
-        
+
         // Find latest followup for each unique lead using aggregation
         const latestFollowups = await Followup.aggregate([
             // Match followups for our unique leads
@@ -163,13 +172,12 @@ export const getNextFollowupByAddedBy = async (req, res) => {
             // Lookup for followedBy (User) details
             {
                 $lookup: {
-                    from: 'users', // Replace with your actual users collection name
+                    from: 'users',
                     localField: 'followedBy',
                     foreignField: '_id',
                     as: 'followedBy'
                 }
             },
-            // Unwind the followedBy array
             {
                 $unwind: {
                     path: '$followedBy',
@@ -179,19 +187,58 @@ export const getNextFollowupByAddedBy = async (req, res) => {
             // Lookup for leadId details
             {
                 $lookup: {
-                    from: 'leads', // Replace with your actual leads collection name
+                    from: 'leads',
                     localField: 'leadId',
                     foreignField: '_id',
                     as: 'leadId'
                 }
             },
-            // Unwind the leadId array
             {
                 $unwind: {
                     path: '$leadId',
                     preserveNullAndEmptyArrays: true
                 }
-            }
+            },
+            // Populate leadId.priority
+            {
+                $lookup: {
+                    from: 'priorities', // Replace with actual collection name if different
+                    localField: 'leadId.priority',
+                    foreignField: '_id',
+                    as: 'leadId.priority'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$leadId.priority',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            // Populate leadId.sources
+           // Populate leadId.sources
+{
+    $lookup: {
+        from: 'leadsources', // ✅ match this to your MongoDB collection name
+        localField: 'leadId.sources',
+        foreignField: '_id',
+        as: 'leadId.sources'
+    }
+},
+{
+    $unwind: {
+        path: '$leadId.sources',
+        preserveNullAndEmptyArrays: true
+    }
+},
+
+{
+    $lookup: {
+        from: 'tags',
+        localField: 'leadId.tags',
+        foreignField: '_id',
+        as: 'leadId.tags'
+    }
+}
         ]);
 
         return res.status(200).json({
@@ -200,7 +247,7 @@ export const getNextFollowupByAddedBy = async (req, res) => {
             uniqueLeadsCount: uniqueLeadIds.length,
             success: true
         });
-        
+
     } catch (error) {
         return res.status(500).json({
             message: error.message || "Internal Server Error while getting followups!",
@@ -208,6 +255,5 @@ export const getNextFollowupByAddedBy = async (req, res) => {
         });
     }
 };
-
 
 

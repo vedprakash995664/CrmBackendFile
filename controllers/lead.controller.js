@@ -115,7 +115,12 @@ export const addManyLead = async (req, res) => {
 export const getAllLeads = async (req, res) => {
     try {
         const addedBy = req.params.id;
-        const leads = await Lead.find({addedBy:addedBy}).populate('leadAssignedTo');
+        const leads = await Lead.find({addedBy:addedBy})
+        .populate('leadAssignedTo')
+        .populate('leadStatus')
+        .populate("priority")
+        .populate("sources")
+        .populate("tags")
         if (!leads) {
             return res.status(404).json({
                 message: "Leads Not Found!, Not registered any lead yet.",
@@ -213,60 +218,69 @@ export const restoreLead = async (req, res) => {
 
 export const assignLead = async (req, res) => {
     try {
-        const { leadId, employeeIds } = req.body;
-        
-        if (!leadId || !employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0) {
-            return res.status(400).json({
-                message: "Lead ID and Employee IDs array are required!",
-                success: false
-            });
-        }
-        
-        // Check if the lead exists
-        const lead = await Lead.findById(leadId);
-        if (!lead) {
-            return res.status(404).json({
-                message: "Lead not found",
-                success: false
-            });
-        }
-        
-        // Check if all employees exist
-        const employees = await Employee.find({ _id: { $in: employeeIds } });
-        if (employees.length !== employeeIds.length) {
-            return res.status(404).json({
-                message: "One or more employees not found",
-                success: false
-            });
-        }
-        
-        // Update the lead with multiple employees
+      const { leadIds, employeeIds } = req.body;
+  
+      if (
+        !leadIds || 
+        !Array.isArray(leadIds) || 
+        leadIds.length === 0 || 
+        !employeeIds || 
+        !Array.isArray(employeeIds) || 
+        employeeIds.length === 0
+      ) {
+        return res.status(400).json({
+          message: "Lead IDs array and Employee IDs array are required!",
+          success: false,
+        });
+      }
+  
+      // Check if all leads exist
+      const leads = await Lead.find({ _id: { $in: leadIds } });
+      if (leads.length !== leadIds.length) {
+        return res.status(404).json({
+          message: "One or more leads not found",
+          success: false,
+        });
+      }
+  
+      // Check if all employees exist
+      const employees = await Employee.find({ _id: { $in: employeeIds } });
+      if (employees.length !== employeeIds.length) {
+        return res.status(404).json({
+          message: "One or more employees not found",
+          success: false,
+        });
+      }
+  
+      // Update each lead
+      const updatedLeads = [];
+      for (const leadId of leadIds) {
         const updatedLead = await Lead.findByIdAndUpdate(
-            leadId,
-            { $set: { leadAssignedTo: employeeIds } },
-            { new: true }
+          leadId,
+          { $set: { leadAssignedTo: employeeIds } },
+          { new: true }
         );
-        
-        return res.status(200).json({
-            message: "Employees assigned to lead successfully",
-            updatedLead,
-            success: true
-        });
-        
+        updatedLeads.push(updatedLead);
+      }
+  
+      return res.status(200).json({
+        message: "Employees assigned to all leads successfully",
+        updatedLeads,
+        success: true,
+      });
     } catch (error) {
-        return res.status(500).json({
-            message: error.message || "Internal Server Error! Error assigning employees to lead",
-            success: false
-        });
+      return res.status(500).json({
+        message: error.message || "Internal Server Error! Error assigning employees to leads",
+        success: false,
+      });
     }
-};
+  };
+  
 
 
 export const updateLead = async(req,res)=>{
     try {
         const leadId = req.params.id;
-        console.log(leadId);
-        
         const { name, priority,sources, email, gender, dob, country, state, city, zipCode, leadStatus,tags} = req.body;
         const lead = await Lead.findOne({_id:leadId})
         console.log(lead);
@@ -286,7 +300,6 @@ export const updateLead = async(req,res)=>{
         if(zipCode) lead.zipCode = zipCode;
         if(leadStatus) lead.leadStatus = leadStatus;
         if(tags) lead.tags = tags
-        
         await  lead.save();
         return res.status(201).json({
             message: "Lead Updated Successfully!",
