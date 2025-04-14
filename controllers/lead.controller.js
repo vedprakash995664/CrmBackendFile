@@ -112,79 +112,60 @@ export const addManyLead = async (req, res) => {
     }
 };
 
-// export const getAllLeads = async (req, res) => {
-//     try {
-//         const addedBy = req.params.id;
-//         const leads = await Lead.find({addedBy:addedBy})
-//         .populate('leadAssignedTo')
-//         .populate('leadStatus')
-//         .populate("priority")
-//         .populate("sources")
-//         .populate("tags")
-//         if (!leads) {
-//             return res.status(404).json({
-//                 message: "Leads Not Found!, Not registered any lead yet.",
-//                 success: false
-//             });
-//         }
-//         return res.status(201).json({
-//             message: "These are the registered leads !",
-//             success: true,
-//             leads
-//         });
-//     } catch (error) {
-//         return res.status(500).json({
-//             message: error.message || "Internal Server Error!, at the time of fetching all leads",
-//             success: false
-//         });
-//     }
-// }
-
 export const getAllLeads = async (req, res) => {
     try {
         const addedBy = req.params.id;
-
-        // Auto pagination logic: default to page 1 and 20 items per page
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
-        const skip = (page - 1) * limit;
-
-        const totalLeads = await Lead.countDocuments({ addedBy });
-
-        const leads = await Lead.find({ addedBy })
-            .populate('leadAssignedTo')
-            .populate('leadStatus')
-            .populate('priority')
-            .populate('sources')
-            .populate('tags')
-            .skip(skip)
-            .limit(limit)
-            .sort({ createdAt: -1 });
-
-        if (!leads || leads.length === 0) {
+        const leads = await Lead.find({addedBy:addedBy})
+        .populate('leadAssignedTo')
+        .populate('leadStatus')
+        .populate("priority")
+        .populate("sources")
+        .populate("tags")
+        if (!leads) {
             return res.status(404).json({
-                message: "No leads found for this page.",
+                message: "Leads Not Found!, Not registered any lead yet.",
                 success: false
             });
         }
-
-        return res.status(200).json({
-            message: "Leads fetched successfully.",
+        return res.status(201).json({
+            message: "These are the registered leads !",
             success: true,
-            currentPage: page,
-            totalPages: Math.ceil(totalLeads / limit),
-            totalLeads,
-            leadsPerPage: limit,
             leads
         });
     } catch (error) {
         return res.status(500).json({
-            message: error.message || "Internal Server Error when fetching leads.",
+            message: error.message || "Internal Server Error!, at the time of fetching all leads",
             success: false
         });
     }
-};
-
+}
+export const employeesAllLeads = async (req, res) => {
+    try {
+        const leadAssignedTo = req.params.id;
+        const leads = await Lead.find({leadAssignedTo:leadAssignedTo})
+        .populate('leadAssignedTo')
+        .populate('leadStatus')
+        .populate("priority")
+        .populate("sources")
+        .populate("tags")
+        if (!leads) {
+            return res.status(404).json({
+                message: "Leads Not Found!, Not registered any lead yet.",
+                success: false
+            });
+        }
+        return res.status(201).json({
+            message: "These are the registered leads !",
+            success: true,
+            leads
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || "Internal Server Error!, at the time of fetching all leads",
+            success: false
+        });
+    }
+}
 export const getLeadById = async (req, res) => {
     try {
         const addedBy = req.params.id;

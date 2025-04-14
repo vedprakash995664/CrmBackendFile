@@ -1,11 +1,12 @@
 import express from "express";
-import { addLead, addManyLead,getAllLeads, getLeadById, deleteLead,restoreLead, assignLead,updateLead,negativedLead,closedLead ,UnclosedLead,UnnegativedLead} from "../controllers/lead.controller.js";
+import { addLead, addManyLead,employeesAllLeads,getAllLeads, getLeadById, deleteLead,restoreLead, assignLead,updateLead,negativedLead,closedLead ,UnclosedLead,UnnegativedLead} from "../controllers/lead.controller.js";
 
 const leadRouter = express.Router()
 
 leadRouter.post("/add/:id",addLead);  
 leadRouter.post("/addmany/:id",addManyLead);
 leadRouter.get("/getall/:id",getAllLeads);
+leadRouter.get("/empgetall/:id",employeesAllLeads);
 leadRouter.get("/get/:id",getLeadById);
 leadRouter.put("/update/:id",updateLead);
 leadRouter.put("/delete/:id",deleteLead);
