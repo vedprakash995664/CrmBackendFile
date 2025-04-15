@@ -21,7 +21,20 @@ connectDB()
 const PORT = process.env.PORT || 3001
 
 const app = express();
-app.use(cors())
+const allowedOrigins = ['crm1.digicoders.in ', 'crm2.digicoders.in', 'crm3.digicoders.in'];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+};
+
+app.use(cors(corsOptions));
+// app.use(cors());
 app.use(express.json())
 
 // use these route
@@ -43,15 +56,6 @@ app.get('/',(_, res, next)=>{
     next();
 })
 
-
-
-
-
 app.listen(PORT,(_, res)=>{
-    console.log(`Server is Runing at port:->>>  https://localhost:${PORT}.`)
+    console.log(`Server is Runing at port:->>>  http://localhost:${PORT}.`)
 })
-
-
-
-
-

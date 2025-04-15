@@ -81,6 +81,7 @@ export const registerAdmin = async (req, res) => {
 export const adminLogin =  async (req, res)=>{
     try {
         const {email, password} = req.body;
+        console.log(email,password)
     if(!email || !password){
         return res.status(400).json({
             message:"Some Credencials are missing!",
