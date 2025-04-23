@@ -116,7 +116,31 @@ export const getAllFollowup = async(req,res)=>{
         .populate('priority')
         .populate('followupStatus')
         .sort({ createdAt: -1 });;
-        console.log(followups);
+        // console.log(followups);
+        
+        return res.status(200).json({   
+            message:"Followup Fond!.",
+            followups,
+            success:true
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            message:error.message || "Internal Server Error, at the time of getting followups!.",
+            success:false
+        })
+    }
+}
+
+export const getLastFollowup = async(req,res)=>{
+    try {
+        const leadId=req.params.id
+        const followups = await Followup.findOne({leadId:leadId})
+        .populate('followedBy')
+        .populate('priority')
+        .populate('followupStatus')
+        .sort({ createdAt: -1 });;
+        // console.log(followups);
         
         return res.status(200).json({   
             message:"Followup Fond!.",

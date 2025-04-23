@@ -1,7 +1,7 @@
 import Admin from "../models/admin.model.js";
 import Employee from "../models/employee.model.js";
 import Lead from "../models/lead.model.js";
-
+import mongoose  from "mongoose";
 export const addLead = async (req, res) => {
     try {
       const addedBy = req.params.id;
@@ -139,23 +139,250 @@ export const getAllLeads = async (req, res) => {
         });
     }
 }
+export const getAssignedLeads = async (req, res) => {
+    try {
+        const addedBy = req.params.id;
+        const leads = await Lead.find({
+            addedBy: addedBy,
+            leadAssignedTo: { $ne: null }
+        })
+            .populate('leadAssignedTo')
+            .populate('leadStatus')
+            .populate('priority')
+            .populate('sources')
+            .populate('tags');
+
+        if (leads.length === 0) {
+            return res.status(404).json({
+                message: "No assigned leads found for this user.",
+                success: false
+            });
+        }
+
+        return res.status(200).json({
+            message: "Assigned leads fetched successfully!",
+            success: true,
+            leads
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || "Internal Server Error while fetching assigned leads",
+            success: false
+        });
+    }
+};
+export const getUnassignedLeads = async (req, res) => {
+    try {
+        const addedBy = req.params.id;
+        const leads = await Lead.find({
+            addedBy: addedBy,
+            leadAssignedTo: null
+        })
+            .populate('leadAssignedTo')
+            .populate('leadStatus')
+            .populate('priority')
+            .populate('sources')
+            .populate('tags');
+
+        if (leads.length === 0) {
+            return res.status(404).json({
+                message: "No unassigned leads found for this user.",
+                success: false
+            });
+        }
+
+        return res.status(200).json({
+            message: "Unassigned leads fetched successfully!",
+            success: true,
+            leads
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || "Internal Server Error while fetching unassigned leads",
+            success: false
+        });
+    }
+};
+
+
+// export const employeesAllLeads = async (req, res) => {
+//     try {
+//         const leadAssignedTo = req.params.id;
+//         const leads = await Lead.find({leadAssignedTo:leadAssignedTo})
+//         .populate('leadAssignedTo')
+//         .populate('leadStatus')
+//         .populate("priority")
+//         .populate("sources")
+//         .populate("tags")
+//         if (!leads) {
+//             return res.status(404).json({
+//                 message: "Leads Not Found!, Not registered any lead yet.",
+//                 success: false
+//             });
+//         }
+//         return res.status(201).json({
+//             message: "These are the registered leads !",
+//             success: true,
+//             leads
+//         });
+//     } catch (error) {
+//         return res.status(500).json({
+//             message: error.message || "Internal Server Error!, at the time of fetching all leads",
+//             success: false
+//         });
+//     }
+// }
+
+
+
+
+
+// export const getLeadById = async (req, res) => {
+//     try {
+//         const addedBy = req.params.id;
+//         const {leadId} = req.body;
+//         if (!leadId) {
+//             return res.status(404).json({
+//                 message: "Lead Id not Found",
+//                 success: false
+//             })
+//         }
+//         const lead = await Lead.findOne({ _id: leadId, addedBy:addedBy });
+//         if (!lead) {
+//             return res.status(404).json({
+//                 message: "Leads Not Found!",
+//                 success: false
+//             });
+//         }
+//         return res.status(200).json({
+//             message: "These are the registered leads !",
+//             lead,
+//             success: true
+//         });
+//     } catch (error) {
+//         return res.status(500).json({
+//             message: error.message || "Internal Server Error!, at the time of fetching lead By id",
+//             success: false
+//         });
+//     }
+// }
+
+
+
 export const employeesAllLeads = async (req, res) => {
     try {
         const leadAssignedTo = req.params.id;
-        const leads = await Lead.find({leadAssignedTo:leadAssignedTo})
-        .populate('leadAssignedTo')
-        .populate('leadStatus')
-        .populate("priority")
-        .populate("sources")
-        .populate("tags")
-        if (!leads) {
+
+        const leads = await Lead.aggregate([
+            {
+                $match: {
+                    leadAssignedTo: new mongoose.Types.ObjectId(leadAssignedTo)
+                }
+            },
+            {
+                $lookup: {
+                    from: "followups",
+                    let: { leadId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $eq: ["$leadId", "$$leadId"]
+                                }
+                            }
+                        },
+                        { $sort: { createdAt: -1 } },
+                        { $limit: 1 },
+                        // Populate followupStatus
+                        {
+                            $lookup: {
+                                from: "followupstatuses",
+                                localField: "followupStatus",
+                                foreignField: "_id",
+                                as: "followupStatus"
+                            }
+                        },
+                        { $unwind: { path: "$followupStatus", preserveNullAndEmptyArrays: true } },
+                        // Populate priority
+                        {
+                            $lookup: {
+                                from: "priorities",
+                                localField: "priority",
+                                foreignField: "_id",
+                                as: "priority"
+                            }
+                        },
+                        { $unwind: { path: "$priority", preserveNullAndEmptyArrays: true } },
+                        // Populate followedBy
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "followedBy",
+                                foreignField: "_id",
+                                as: "followedBy"
+                            }
+                        },
+                        { $unwind: { path: "$followedBy", preserveNullAndEmptyArrays: true } }
+                    ],
+                    as: "latestFollowup"
+                }
+            },
+            // Optional: populate lead fields like priority, sources, etc.
+            {
+                $lookup: {
+                    from: "leadstatuses",
+                    localField: "leadStatus",
+                    foreignField: "_id",
+                    as: "leadStatus"
+                }
+            },
+            { $unwind: { path: "$leadStatus", preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: "priorities",
+                    localField: "priority",
+                    foreignField: "_id",
+                    as: "priority"
+                }
+            },
+            { $unwind: { path: "$priority", preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: "leadsources", // Make sure this matches your MongoDB collection name
+                    localField: "sources",
+                    foreignField: "_id",
+                    as: "sources"
+                }
+            },
+            { $unwind: { path: "$sources", preserveNullAndEmptyArrays: true } },            
+            {
+                $lookup: {
+                    from: "tags",
+                    localField: "tags",
+                    foreignField: "_id",
+                    as: "tags"
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "leadAssignedTo",
+                    foreignField: "_id",
+                    as: "leadAssignedTo"
+                }
+            },
+            { $unwind: { path: "$leadAssignedTo", preserveNullAndEmptyArrays: true } }
+        ]);
+
+        if (!leads || leads.length === 0) {
             return res.status(404).json({
                 message: "Leads Not Found!, Not registered any lead yet.",
                 success: false
             });
         }
-        return res.status(201).json({
-            message: "These are the registered leads !",
+
+        return res.status(200).json({
+            message: "These are the registered leads!",
             success: true,
             leads
         });
@@ -166,35 +393,7 @@ export const employeesAllLeads = async (req, res) => {
         });
     }
 }
-export const getLeadById = async (req, res) => {
-    try {
-        const addedBy = req.params.id;
-        const {leadId} = req.body;
-        if (!leadId) {
-            return res.status(404).json({
-                message: "Lead Id not Found",
-                success: false
-            })
-        }
-        const lead = await Lead.findOne({ _id: leadId, addedBy:addedBy });
-        if (!lead) {
-            return res.status(404).json({
-                message: "Leads Not Found!",
-                success: false
-            });
-        }
-        return res.status(200).json({
-            message: "These are the registered leads !",
-            lead,
-            success: true
-        });
-    } catch (error) {
-        return res.status(500).json({
-            message: error.message || "Internal Server Error!, at the time of fetching lead By id",
-            success: false
-        });
-    }
-}
+
 
 export const deleteLead = async (req, res) => {
     try {
@@ -302,13 +501,74 @@ export const assignLead = async (req, res) => {
       });
     }
   };
+
+
+  export const unassignLeads = async (req, res) => {
+    try {
+      const { leadIds, employeeIdsToRemove } = req.body;
+  
+      // Validation
+      if (!Array.isArray(leadIds) || leadIds.length === 0) {
+        return res.status(400).json({
+          message: "Lead IDs array is required!",
+          success: false,
+        });
+      }
+  
+      if (!Array.isArray(employeeIdsToRemove) || employeeIdsToRemove.length === 0) {
+        return res.status(400).json({
+          message: "Employee IDs to remove are required!",
+          success: false,
+        });
+      }
+  
+      // Fetch leads
+      const leads = await Lead.find({ _id: { $in: leadIds } });
+      if (leads.length !== leadIds.length) {
+        return res.status(404).json({
+          message: "One or more leads not found",
+          success: false,
+        });
+      }
+  
+      const updatedLeads = [];
+  
+      for (const lead of leads) {
+        const currentAssigned = lead.leadAssignedTo || [];
+  
+        // Filter out employees to remove
+        const updatedAssigned = currentAssigned.filter(
+          (empId) => !employeeIdsToRemove.includes(empId.toString())
+        );
+  
+        // If no employees left, set to null
+        lead.leadAssignedTo = updatedAssigned.length > 0 ? updatedAssigned : null;
+  
+        const updatedLead = await lead.save();
+        updatedLeads.push(updatedLead);
+      }
+  
+      return res.status(200).json({
+        message: "Selected employees have been unassigned from the leads successfully",
+        updatedLeads,
+        success: true,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        message: error.message || "Internal Server Error! Error unassigning employees",
+        success: false,
+      });
+    }
+  };
+  
+
   
 
 
 export const updateLead = async(req,res)=>{
     try {
         const leadId = req.params.id;
-        const { name, priority,sources, email, gender, dob, country, state, city, zipCode, leadStatus,tags} = req.body;
+        const { name,phone, priority,sources, email, gender, dob, country, state, city, zipCode, leadStatus,tags} = req.body;
         const lead = await Lead.findOne({_id:leadId})
         console.log(lead);
         
@@ -316,6 +576,7 @@ export const updateLead = async(req,res)=>{
             return res.status(404).json({message:" id not found",success:false})
         }
         if(name) lead.name = name ;
+        if(phone) lead.phone = phone ;
         if(priority) lead.priority = priority;
         if(email) lead.email = email;
         if(gender) lead.gender = gender;
