@@ -112,57 +112,175 @@ export const addManyLead = async (req, res) => {
     }
 };
 
-export const getAllLeads = async (req, res) => {
+export const getAllDeletedLeads = async (req, res) => {
     try {
         const addedBy = req.params.id;
-        const leads = await Lead.find({addedBy:addedBy})
-        .populate('leadAssignedTo')
-        .populate('leadStatus')
-        .populate("priority")
-        .populate("sources")
-        .populate("tags")
-        if (!leads) {
-            return res.status(404).json({
-                message: "Leads Not Found!, Not registered any lead yet.",
-                success: false
-            });
-        }
-        return res.status(201).json({
-            message: "These are the registered leads !",
-            success: true,
-            leads
-        });
-    } catch (error) {
-        return res.status(500).json({
-            message: error.message || "Internal Server Error!, at the time of fetching all leads",
-            success: false
-        });
-    }
-}
-export const getAssignedLeads = async (req, res) => {
-    try {
-        const addedBy = req.params.id;
-        const leads = await Lead.find({
-            addedBy: addedBy,
-            leadAssignedTo: { $ne: null }
-        })
+        const leads = await Lead.find({ addedBy: addedBy, deleted: true })
             .populate('leadAssignedTo')
             .populate('leadStatus')
-            .populate('priority')
-            .populate('sources')
-            .populate('tags');
+            .populate("priority")
+            .populate("sources")
+            .populate("tags");
 
-        if (leads.length === 0) {
+        if (!leads || leads.length === 0) {
             return res.status(404).json({
-                message: "No assigned leads found for this user.",
+                message: "No deleted leads found.",
                 success: false
             });
         }
 
         return res.status(200).json({
-            message: "Assigned leads fetched successfully!",
+            message: "Deleted leads fetched successfully!",
             success: true,
             leads
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || "Internal Server Error while fetching deleted leads",
+            success: false
+        });
+    }
+};
+
+
+
+export const getAllLeads = async (req, res) => {
+    try {
+        const addedBy = req.params.id;
+        const { leadAssignedTo, tags } = req.query; // Add tags to query params
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Base query
+        const query = { 
+            addedBy: addedBy,
+            deleted: false
+        };
+
+        // Add employee filter if provided
+        if (leadAssignedTo && leadAssignedTo !== 'null') {
+            query.leadAssignedTo = leadAssignedTo;
+        }
+        
+        // Add tags filter if provided - matches leads that have ALL specified tags
+        if (tags && tags !== 'null') {
+            const tagIds = Array.isArray(tags) ? tags : tags.split(',');
+            query.tags = { $all: tagIds };
+        }
+
+        const [leads, totalLeads] = await Promise.all([
+            Lead.find(query)
+                .skip(skip)
+                .limit(limit)
+                .populate('leadAssignedTo')
+                .populate('leadStatus')
+                .populate("priority")
+                .populate("sources")
+                .populate("tags"),
+            Lead.countDocuments(query)
+        ]);
+
+        const totalPages = Math.ceil(totalLeads / limit);
+
+        return res.status(200).json({
+            success: true,
+            leads,
+            totalLeads,
+            totalPages,
+            currentPage: page
+        });
+        
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch leads"
+        });
+    }
+};
+
+
+// export const getAssignedLeads = async (req, res) => {
+//     try {
+//         const addedBy = req.params.id;
+//         const leads = await Lead.find({
+//             addedBy: addedBy,
+//             leadAssignedTo: { $ne: null }
+//         })
+//             .populate('leadAssignedTo')
+//             .populate('leadStatus')
+//             .populate('priority')
+//             .populate('sources')
+//             .populate('tags');
+
+//         if (leads.length === 0) {
+//             return res.status(404).json({
+//                 message: "No assigned leads found for this user.",
+//                 success: false
+//             });
+//         }
+
+//         return res.status(200).json({
+//             message: "Assigned leads fetched successfully!",
+//             success: true,
+//             leads
+//         });
+//     } catch (error) {
+//         return res.status(500).json({
+//             message: error.message || "Internal Server Error while fetching assigned leads",
+//             success: false
+//         });
+//     }
+// };
+
+
+export const getAssignedLeads = async (req, res) => {
+    try {
+        const addedBy = req.params.id;
+        const { leadAssignedTo, tags } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Base query: addedBy and leadAssignedTo is not null
+        const query = {
+            addedBy: addedBy,
+            leadAssignedTo: { $ne: null },
+            deleted: false
+        };
+
+        // Optional filter: specific assignee
+        if (leadAssignedTo && leadAssignedTo !== 'null') {
+            query.leadAssignedTo = leadAssignedTo;
+        }
+
+        // Optional filter: tags (must include all)
+        if (tags && tags !== 'null') {
+            const tagIds = Array.isArray(tags) ? tags : tags.split(',');
+            query.tags = { $all: tagIds };
+        }
+
+        const [leads, totalLeads] = await Promise.all([
+            Lead.find(query)
+                .skip(skip)
+                .limit(limit)
+                .populate('leadAssignedTo')
+                .populate('leadStatus')
+                .populate('priority')
+                .populate('sources')
+                .populate('tags'),
+            Lead.countDocuments(query)
+        ]);
+
+        const totalPages = Math.ceil(totalLeads / limit);
+
+        return res.status(200).json({
+            message: "Assigned leads fetched successfully!",
+            success: true,
+            leads,
+            totalLeads,
+            totalPages,
+            currentPage: page
         });
     } catch (error) {
         return res.status(500).json({
@@ -171,38 +289,41 @@ export const getAssignedLeads = async (req, res) => {
         });
     }
 };
-export const getUnassignedLeads = async (req, res) => {
-    try {
-        const addedBy = req.params.id;
-        const leads = await Lead.find({
-            addedBy: addedBy,
-            leadAssignedTo: null
-        })
-            .populate('leadAssignedTo')
-            .populate('leadStatus')
-            .populate('priority')
-            .populate('sources')
-            .populate('tags');
 
-        if (leads.length === 0) {
-            return res.status(404).json({
-                message: "No unassigned leads found for this user.",
-                success: false
-            });
-        }
 
-        return res.status(200).json({
-            message: "Unassigned leads fetched successfully!",
-            success: true,
-            leads
-        });
-    } catch (error) {
-        return res.status(500).json({
-            message: error.message || "Internal Server Error while fetching unassigned leads",
-            success: false
-        });
-    }
-};
+
+// export const getUnassignedLeads = async (req, res) => {
+//     try {
+//         const addedBy = req.params.id;
+//         const leads = await Lead.find({
+//             addedBy: addedBy,
+//             leadAssignedTo: null
+//         })
+//             .populate('leadAssignedTo')
+//             .populate('leadStatus')
+//             .populate('priority')
+//             .populate('sources')
+//             .populate('tags');
+
+//         if (leads.length === 0) {
+//             return res.status(404).json({
+//                 message: "No unassigned leads found for this user.",
+//                 success: false
+//             });
+//         }
+
+//         return res.status(200).json({
+//             message: "Unassigned leads fetched successfully!",
+//             success: true,
+//             leads
+//         });
+//     } catch (error) {
+//         return res.status(500).json({
+//             message: error.message || "Internal Server Error while fetching unassigned leads",
+//             success: false
+//         });
+//     }
+// };
 
 
 // export const employeesAllLeads = async (req, res) => {
@@ -266,6 +387,60 @@ export const getUnassignedLeads = async (req, res) => {
 //         });
 //     }
 // }
+
+
+
+
+export const getUnassignedLeads = async (req, res) => {
+    try {
+        const addedBy = req.params.id;
+        const { tags } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Base query: addedBy and unassigned leads
+        const query = {
+            addedBy: addedBy,
+            leadAssignedTo: null,
+            deleted: false
+        };
+
+        // Optional filter: tags (must include all)
+        if (tags && tags !== 'null') {
+            const tagIds = Array.isArray(tags) ? tags : tags.split(',');
+            query.tags = { $all: tagIds };
+        }
+
+        const [leads, totalLeads] = await Promise.all([
+            Lead.find(query)
+                .skip(skip)
+                .limit(limit)
+                .populate('leadAssignedTo')
+                .populate('leadStatus')
+                .populate('priority')
+                .populate('sources')
+                .populate('tags'),
+            Lead.countDocuments(query)
+        ]);
+
+        const totalPages = Math.ceil(totalLeads / limit);
+
+        return res.status(200).json({
+            message: "Unassigned leads fetched successfully!",
+            success: true,
+            leads,
+            totalLeads,
+            totalPages,
+            currentPage: page
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || "Internal Server Error while fetching unassigned leads",
+            success: false
+        });
+    }
+};
 
 
 
