@@ -1,7 +1,5 @@
 import Followup from "../models/followup.model.js";
 import Lead from "../models/lead.model.js";
-import FollowupStatus from "../models/followupStatus.model.js";
-import Priority from "../models/priority.model.js";
 import Employee from "../models/employee.model.js";
 
 import mongoose from 'mongoose';
@@ -9,7 +7,7 @@ import mongoose from 'mongoose';
 export const addFollowup = async(req,res)=>{
     try {
         const leadId = req.params.id;
-        console.log(leadId);
+        // console.log(leadId);
         const {status, priority, followedBy, message, reminder} = req.body;
         if(!leadId || !status || !priority || !followedBy || !message){
             return res.status(400).json({
@@ -18,7 +16,7 @@ export const addFollowup = async(req,res)=>{
             });
         }
         const isExistLead = await Lead.findOne({_id:leadId})
-        console.log(isExistLead);        
+        // console.log(isExistLead);        
         if(!isExistLead){
             return res.status(400).json({
                 message:"Invalid Lead id!",

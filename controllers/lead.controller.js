@@ -93,7 +93,7 @@ export const addManyLead = async (req, res) => {
             });
         }
 
-        console.log("New Leads to Insert:", leads);
+        // console.log("New Leads to Insert:", leads);
 
         // Insert new leads in bulk
         const insertedNewLeads = await Lead.insertMany(leads);
@@ -147,38 +147,51 @@ export const getAllDeletedLeads = async (req, res) => {
 export const getAllLeads = async (req, res) => {
     try {
         const addedBy = req.params.id;
-        const { leadAssignedTo, tags } = req.query; // Add tags to query params
+        const { leadAssignedTo, tags } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
         // Base query
-        const query = { 
-            addedBy: addedBy,
+        const baseQuery = { 
+            addedBy,
             deleted: false
         };
 
-        // Add employee filter if provided
+        // Optional filters
         if (leadAssignedTo && leadAssignedTo !== 'null') {
-            query.leadAssignedTo = leadAssignedTo;
-        }
-        
-        // Add tags filter if provided - matches leads that have ALL specified tags
-        if (tags && tags !== 'null') {
-            const tagIds = Array.isArray(tags) ? tags : tags.split(',');
-            query.tags = { $all: tagIds };
+            baseQuery.leadAssignedTo = leadAssignedTo;
         }
 
+        if (tags && tags !== 'null') {
+            const tagIds = Array.isArray(tags) ? tags : tags.split(',');
+            baseQuery.tags = { $all: tagIds };
+        }
+
+        // Fetch paginated leads and count
         const [leads, totalLeads] = await Promise.all([
-            Lead.find(query)
+            Lead.find(baseQuery)
                 .skip(skip)
                 .limit(limit)
                 .populate('leadAssignedTo')
                 .populate('leadStatus')
-                .populate("priority")
-                .populate("sources")
-                .populate("tags"),
-            Lead.countDocuments(query)
+                .populate('priority')
+                .populate('sources')
+                .populate('tags'),
+            Lead.countDocuments(baseQuery)
+        ]);
+
+        // Fetch additional statistics
+        const [
+            totalAssignedLeads,
+            totalUnassignedLeads,
+            totalClosedLeads,
+            totalNegativeLeads
+        ] = await Promise.all([
+            Lead.countDocuments({ addedBy, deleted: false, leadAssignedTo: { $ne: null } }),
+            Lead.countDocuments({ addedBy, deleted: false, leadAssignedTo: null }),
+            Lead.countDocuments({ addedBy, deleted: false, closed: true }),
+            Lead.countDocuments({ addedBy, deleted: false, negative: true })
         ]);
 
         const totalPages = Math.ceil(totalLeads / limit);
@@ -188,16 +201,22 @@ export const getAllLeads = async (req, res) => {
             leads,
             totalLeads,
             totalPages,
-            currentPage: page
+            currentPage: page,
+            totalAssignedLeads,
+            totalUnassignedLeads,
+            totalClosedLeads,
+            totalNegativeLeads
         });
-        
+
     } catch (error) {
         return res.status(500).json({
             success: false,
-            message: "Failed to fetch leads"
+            message: "Failed to fetch leads",
+            error: error.message
         });
     }
 };
+
 
 
 // export const getAssignedLeads = async (req, res) => {
@@ -745,7 +764,6 @@ export const updateLead = async(req,res)=>{
         const leadId = req.params.id;
         const { name,phone, priority,sources, email, gender, dob, country, state, city, zipCode, leadStatus,tags} = req.body;
         const lead = await Lead.findOne({_id:leadId})
-        console.log(lead);
         
         if(!lead){
             return res.status(404).json({message:" id not found",success:false})
