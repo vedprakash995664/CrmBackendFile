@@ -66,6 +66,50 @@ export const getAllTags = async (req, res) => {
         })
     }
 }
+
+
+
+// export const getAllTags = async (req, res) => {
+//     try {
+//         const addedBy = req.params.id;
+//         const { page = 1, limit = 20, search = '' } = req.query;
+        
+//         const query = { 
+//             addedBy: addedBy,
+//             ...(search && { tagName: { $regex: search, $options: 'i' } })
+//         };
+
+//         const options = {
+//             page: parseInt(page),
+//             limit: parseInt(limit),
+//             populate: "addedBy",
+//             sort: { createdAt: -1 }
+//         };
+
+//         const result = await Tag.paginate(query, options);
+        
+//         if (!result.docs || result.docs.length === 0) {
+//             return res.status(404).json({
+//                 message: "No tags found!",
+//                 success: false
+//             });
+//         }
+
+//         return res.status(200).json({
+//             message: "Tags retrieved successfully",
+//             tags: result.docs,
+//             totalCount: result.totalDocs,
+//             success: true
+//         });
+
+//     } catch (error) {
+//         return res.status(500).json({
+//             message: error.message || "Internal server Error",
+//             success: false
+//         });
+//     }
+// };
+
 export const getTagById = async (req, res) => {
     try {
         const tagId = req.params.id;

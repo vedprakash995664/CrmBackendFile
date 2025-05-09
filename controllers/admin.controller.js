@@ -81,7 +81,6 @@ export const registerAdmin = async (req, res) => {
 export const adminLogin =  async (req, res)=>{
     try {
         const {email, password} = req.body;
-        console.log(email,password)
     if(!email || !password){
         return res.status(400).json({
             message:"Some Credencials are missing!",
@@ -94,7 +93,7 @@ export const adminLogin =  async (req, res)=>{
         });
     if(!existUser){
         return res.status(400).json({
-            message:"Please Enter Currect Credentials !",
+            message:"Please Enter currect Credentials !",
             success:false,
         })
     }
@@ -121,7 +120,7 @@ export const adminLogin =  async (req, res)=>{
 // this action done by the superadmin
 
 export const getAllAdmins = async (req, res)=>{
-    try {
+    try { 
         const allAdmins = await Admin.find().populate("addedBy");
         if(!allAdmins || allAdmins.length === 0){
             return res.status(404).json({

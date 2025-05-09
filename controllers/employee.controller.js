@@ -216,28 +216,172 @@ export const loginEmployee = async (req,res)=>{
     }
 }
 
-export const getAllEmployees = async (req, res)=>{
+// export const getAllEmployees = async (req, res)=>{
+//     try {
+//         const addedBy = req.params.id;
+//         const employees = await Employee.find({addedBy:addedBy});
+//         if(!employees){
+//             return res.status(404).json({
+//                 message:"Employees are not found in Database!.",
+//                 success:false
+//             })
+//         }
+//         return res.status(200).json({
+//             message:"these Emaployees are registered here.",
+//             employees,
+//             success:true
+//         })
+//     } catch (error) {
+//         return res.status(500).json({
+//             message:error.message || "Internal server error!, at the time of fetching employees .",
+//             success:false
+//         })        
+//     }
+// }
+
+// Updated getAllEmployees function with pagination
+
+
+export const getAllEmployees = async (req, res) => {
     try {
         const addedBy = req.params.id;
-        const employees = await Employee.find({addedBy:addedBy});
-        if(!employees){
-            return res.status(404).json({
-                message:"Employees are not found in Database!.",
-                success:false
-            })
+        
+        // Pagination parameters from query string
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.rows) || 15;
+        const skip = (page - 1) * limit;
+        
+        // Search parameter
+        const searchQuery = req.query.search || '';
+        
+        // Build filter object for MongoDB query
+        let filterQuery = { addedBy: addedBy, blocked: false }; // Exclude blocked employees
+        
+        // Add search functionality if search parameter is provided
+        if (searchQuery) {
+            filterQuery = {
+                ...filterQuery,
+                $or: [
+                    { empName: { $regex: searchQuery, $options: 'i' } },
+                    { empEmail: { $regex: searchQuery, $options: 'i' } },
+                    { empPhoneNumber: { $regex: searchQuery, $options: 'i' } }
+                ]
+            };
         }
+        
+        // Get total count for pagination metadata
+        const totalEmployees = await Employee.countDocuments(filterQuery);
+        
+        // Fetch employees with pagination
+        const employees = await Employee.find(filterQuery)
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 }); // Sort by creation date, newest first
+        
+        if (!employees || employees.length === 0) {
+            return res.status(200).json({
+                message: "No employees found matching your criteria.",
+                employees: [],
+                pagination: {
+                    page,
+                    limit,
+                    totalRecords: 0,
+                    totalPages: 0
+                },
+                success: true
+            });
+        }
+        
         return res.status(200).json({
-            message:"these Emaployees are registered here.",
+            message: "Employees retrieved successfully.",
             employees,
-            success:true
-        })
+            pagination: {
+                page,
+                limit,
+                totalRecords: totalEmployees,
+                totalPages: Math.ceil(totalEmployees / limit)
+            },
+            success: true
+        });
     } catch (error) {
         return res.status(500).json({
-            message:error.message || "Internal server error!, at the time of fetching employees .",
-            success:false
-        })        
+            message: error.message || "Internal server error occurred while fetching employees.",
+            success: false
+        });
     }
-}
+};
+
+
+export const getBlockedEmployees = async (req, res) => {
+    try {
+        const addedBy = req.params.id;
+
+        // Pagination parameters from query string
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.rows) || 15;
+        const skip = (page - 1) * limit;
+
+        // Search parameter
+        const searchQuery = req.query.search || '';
+
+        // Build filter object for MongoDB query
+        let filterQuery = { addedBy: addedBy, blocked: true }; // Only blocked employees
+
+        // Add search functionality if search parameter is provided
+        if (searchQuery) {
+            filterQuery = {
+                ...filterQuery,
+                $or: [
+                    { empName: { $regex: searchQuery, $options: 'i' } },
+                    { empEmail: { $regex: searchQuery, $options: 'i' } },
+                    { empPhoneNumber: { $regex: searchQuery, $options: 'i' } }
+                ]
+            };
+        }
+
+        // Get total count for pagination metadata
+        const totalEmployees = await Employee.countDocuments(filterQuery);
+
+        // Fetch employees with pagination
+        const employees = await Employee.find(filterQuery)
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 }); // Sort by creation date, newest first
+
+        if (!employees || employees.length === 0) {
+            return res.status(200).json({
+                message: "No blocked employees found matching your criteria.",
+                employees: [],
+                pagination: {
+                    page,
+                    limit,
+                    totalRecords: 0,
+                    totalPages: 0
+                },
+                success: true
+            });
+        }
+
+        return res.status(200).json({
+            message: "Blocked employees retrieved successfully.",
+            employees,
+            pagination: {
+                page,
+                limit,
+                totalRecords: totalEmployees,
+                totalPages: Math.ceil(totalEmployees / limit)
+            },
+            success: true
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message || "Internal server error occurred while fetching blocked employees.",
+            success: false
+        });
+    }
+};
+
+
 export const getEmployeeById = async (req, res)=>{
     try {
         const addedBy = req.params.id;

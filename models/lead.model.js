@@ -50,6 +50,7 @@ const leadSchema = mongoose.Schema({
   leadStatus: {
     type:mongoose.Schema.Types.ObjectId,
     ref:"LeadStatus"
+
   },
   // Modified this field to be an array of ObjectIds
   leadAssignedTo: [{
