@@ -11,7 +11,6 @@ leadRouter.get("/getDeletedall/:id",getAllDeletedLeads);
 leadRouter.get("/getAssignedLeads/:id",getAssignedLeads);
 leadRouter.get("/getUnassignedLeads/:id",getUnassignedLeads);
 leadRouter.get("/empgetall/:id",employeesAllLeads);
-// leadRouter.get("/get/:id",getLeadById);
 leadRouter.put("/update/:id",updateLead);
 leadRouter.put("/delete/:id",deleteLead);
 leadRouter.put("/restore/:id",restoreLead);
