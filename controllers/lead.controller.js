@@ -2,6 +2,7 @@ import Admin from "../models/admin.model.js";
 import Employee from "../models/employee.model.js";
 import Lead from "../models/lead.model.js";
 import mongoose  from "mongoose";
+
 export const addLead = async (req, res) => {
     try {
       const addedBy = req.params.id;
@@ -587,6 +588,129 @@ export const employeesAllLeads = async (req, res) => {
         });
     }
 }
+
+
+
+export const getPendingLeadsByEmployee = async (req, res) => {
+  try {
+    const employeeId = req.params.id;
+
+    const leads = await Lead.aggregate([
+      {
+        $match: {
+          leadAssignedTo: new mongoose.Types.ObjectId(employeeId),
+          closed: false,
+          deleted: false,
+          negative: false,
+        },
+      },
+      {
+        $lookup: {
+          from: 'followups',
+          let: { leadId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$leadId', '$$leadId'] },
+              },
+            },
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 }, // Get latest follow-up only
+          ],
+          as: 'latestFollowup',
+        },
+      },
+
+      // 🔍 FILTER: Exclude if latest follow-up is by the same employee
+      {
+        $match: {
+          $or: [
+            { latestFollowup: { $eq: [] } }, // No follow-up exists — include
+            {
+              'latestFollowup.0.followedBy': {
+                $ne: new mongoose.Types.ObjectId(employeeId), // Latest follow-up NOT by same employee — include
+              },
+            },
+          ],
+        },
+      },
+
+      // Populate leadStatus
+      {
+        $lookup: {
+          from: 'leadstatuses',
+          localField: 'leadStatus',
+          foreignField: '_id',
+          as: 'leadStatus',
+        },
+      },
+      { $unwind: { path: '$leadStatus', preserveNullAndEmptyArrays: true } },
+
+      // Populate priority
+      {
+        $lookup: {
+          from: 'priorities',
+          localField: 'priority',
+          foreignField: '_id',
+          as: 'priority',
+        },
+      },
+      { $unwind: { path: '$priority', preserveNullAndEmptyArrays: true } },
+
+      // Populate sources
+      {
+        $lookup: {
+          from: 'leadsources',
+          localField: 'sources',
+          foreignField: '_id',
+          as: 'sources',
+        },
+      },
+      { $unwind: { path: '$sources', preserveNullAndEmptyArrays: true } },
+
+      // Populate tags
+      {
+        $lookup: {
+          from: 'tags',
+          localField: 'tags',
+          foreignField: '_id',
+          as: 'tags',
+        },
+      },
+
+      // Populate assigned user
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'leadAssignedTo',
+          foreignField: '_id',
+          as: 'leadAssignedTo',
+        },
+      },
+      { $unwind: { path: '$leadAssignedTo', preserveNullAndEmptyArrays: true } },
+    ]);
+
+    if (!leads || leads.length === 0) {
+      return res.status(404).json({
+        message: 'No pending leads found!',
+        success: false,
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Fetched pending leads successfully!',
+      success: true,
+      leads,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || 'Internal Server Error, while fetching pending leads',
+      success: false,
+    });
+  }
+};
+
+
 
 
 export const deleteLead = async (req, res) => {
