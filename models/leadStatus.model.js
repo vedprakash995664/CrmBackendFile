@@ -4,8 +4,6 @@ const leadStatusSchema = mongoose.Schema({
     leadStatusText: {
         type: String,
         required: true,
-        unique: true,
-        trim: true
     },  
     addedBy: {
         type: mongoose.Schema.Types.ObjectId,

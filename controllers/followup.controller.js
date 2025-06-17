@@ -85,27 +85,62 @@ export const getFollowupById = async(req,res)=>{
         })
     }
 }
-export const getFollowupByAddedBy = async(req,res)=>{
+// export const getFollowupByAddedBy = async(req,res)=>{
+//     try {
+//         const followedBy=req.params.id;
+//         const followups = await Followup.find({followedBy:followedBy})
+//         .populate('followedBy')
+//         .populate('leadId')   
+//         .populate('priority')
+//         .populate('followupStatus');
+//         return res.status(200).json({
+//             message:"Followup Fond!.",
+//             followups,
+//             success:true
+//         })
+
+//     } catch (error) {
+//         return res.status(500).json({
+//             message:error.message || "Internal Server Error, at the time of getting followups!.",
+//             success:false
+//         })
+//     }
+// }
+
+export const getFollowupByAddedBy = async (req, res) => {
     try {
-        const followedBy=req.params.id;
-        const followups = await Followup.find({followedBy:followedBy})
-        .populate('followedBy')
-        .populate('leadId')   
-        .populate('priority')
-        .populate('followupStatus');
+        const followedBy = req.params.id;
+
+        const followups = await Followup.find({ followedBy })
+            .populate('followedBy')
+            .populate('priority')
+            .populate('followupStatus')
+            .populate({
+                path: 'leadId',
+                populate: [
+                    { path: 'priority' },
+                    { path: 'sources' },
+                    { path: 'tags' },
+                    { path: 'leadStatus' },
+                    { path: 'leadAssignedTo' },
+                ]
+            });
+
         return res.status(200).json({
-            message:"Followup Fond!.",
+            message: "Followups Found!",
             followups,
-            success:true
-        })
+            success: true
+        });
 
     } catch (error) {
         return res.status(500).json({
-            message:error.message || "Internal Server Error, at the time of getting followups!.",
-            success:false
-        })
+            message: error.message || "Internal Server Error, at the time of getting followups!",
+            success: false
+        });
     }
-}
+};
+
+
 export const getAllFollowup = async(req,res)=>{
     try {
         const leadId=req.params.id

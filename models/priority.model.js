@@ -4,7 +4,6 @@ const prioritySchema = mongoose.Schema({
     priorityText:{
         type:String,
         required:true,
-        unique:true,
         trim:true,
     },
     addedBy: {

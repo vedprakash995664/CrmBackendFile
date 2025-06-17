@@ -5,11 +5,7 @@ import Priority from "../models/priority.model.js";
 export const addPriority = async (req, res) => {
     try {
         const addedBy = req.params.id;
-        console.log(addedBy);
-        
         const { priorityText, userType } = req.body;     
-        console.log(priorityText);
-           
         if (!priorityText || !mongoose.Types.ObjectId.isValid(addedBy)) {
             return res.status(404).json({
                 message: "PriorityText and addedBy are required !.",
@@ -17,13 +13,13 @@ export const addPriority = async (req, res) => {
             })
         }
         
-        const isExistPriority = await Priority.findOne({priorityText:priorityText})
-        if(isExistPriority){
-            return res.status(400).json({
-                message:`Priority '${priorityText}' alrady exist!`,
-                success:false
-            })
-        }
+        // const isExistPriority = await Priority.findOne({priorityText:priorityText})
+        // if(isExistPriority){
+        //     return res.status(400).json({
+        //         message:`Priority '${priorityText}' alrady exist!`,
+        //         success:false
+        //     })
+        // }
         const newPriority = await Priority.create({
             priorityText: priorityText,
             addedBy,
