@@ -219,6 +219,36 @@ export const getAllLeads = async (req, res) => {
 };
 
 
+// GET /api/leads/search?query=keyword
+export const searchLeads = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+      return res.status(400).json({ success: false, message: "Query is required" });
+    }
+
+    const leads = await Lead.find({
+      deleted: false,
+      $or: [
+        { name: { $regex: query, $options: 'i' } },
+        { phone: { $regex: query, $options: 'i' } },
+        { email: { $regex: query, $options: 'i' } }
+      ]
+    })
+      .populate('leadAssignedTo')
+      .populate('leadStatus')
+      .populate('priority')
+      .populate('sources')
+      .populate('tags');
+
+    return res.status(200).json({ success: true, leads });
+
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Search failed", error: error.message });
+  }
+};
+
 
 // export const getAssignedLeads = async (req, res) => {
 //     try {

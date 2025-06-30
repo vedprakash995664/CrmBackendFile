@@ -1,5 +1,5 @@
 import express from "express";
-import { addLead, addManyLead,getAssignedLeads,getPendingLeadsByEmployee,getUnassignedLeads,employeesAllLeads,getAllLeads, deleteLead,restoreLead, assignLead,updateLead,negativedLead,closedLead ,UnclosedLead,UnnegativedLead,unassignLeads,getAllDeletedLeads} from "../controllers/lead.controller.js";
+import { addLead, addManyLead,getAssignedLeads,getPendingLeadsByEmployee,getUnassignedLeads,employeesAllLeads,getAllLeads, deleteLead,restoreLead, assignLead,updateLead,negativedLead,closedLead ,UnclosedLead,UnnegativedLead,unassignLeads,getAllDeletedLeads, searchLeads} from "../controllers/lead.controller.js";
 
 const leadRouter = express.Router()
 
@@ -20,6 +20,9 @@ leadRouter.put("/negative/:id",negativedLead);
 leadRouter.put("/closed/:id",closedLead);
 leadRouter.put("/unclosed/:id",UnclosedLead);
 leadRouter.put("/UnnegativedLead/:id",UnnegativedLead);
+
+leadRouter.get('/search', searchLeads);
+
 
 export default leadRouter
 
